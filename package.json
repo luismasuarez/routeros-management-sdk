@@ -1,0 +1,25 @@
+{
+  "name": "router-os-sdk",
+  "description": "A module for RouterOS managment",
+  "version": "0.0.1",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "homepage": "https://github.com/luismasuarez",
+  "scripts": {
+    "build": "tsup"
+  },
+  "keywords": [
+    "npm",
+    "module",
+    "template",
+    "starter scaffold"
+  ],
+  "author": "Luisma Suarez",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.2.2",
+    "typescript": "^5.5.4"
+  }
+}
