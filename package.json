@@ -6,6 +6,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "homepage": "https://github.com/luismasuarez",
+  "type": "module",
   "scripts": {
     "build": "tsup"
   },
