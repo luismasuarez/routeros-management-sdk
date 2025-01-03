@@ -1,4 +1,4 @@
-import { ParsedObject } from "./types";
+import { ParsedObject } from "../types";
 
 export function clearData(data: string) {
   return data.replace(/\s+/g, '');

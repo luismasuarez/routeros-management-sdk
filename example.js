@@ -1,5 +1,5 @@
 import * as readline from 'readline';
-import { RouterOSClient, clearData } from './dist/index.js';
+import { ROSClient } from './dist/index.js'; // Asegúrate de importar correctamente tu clase ROS
 
 // Crear la interfaz readline
 const rl = readline.createInterface({
@@ -19,44 +19,47 @@ let connectionData = {
 
 // Función para manejar la conexión y los comandos
 const handleConnection = async () => {
-  const dst = connectionData.host;
+  const { host, username, password } = connectionData;
   const port = 8728;
-  const secure = false;
-  const username = connectionData.username;
-  const password = connectionData.password;
+  const secure = false;  // Ajusta a `true` si la conexión debe ser segura
 
-  const apiRosSocket = new RouterOSClient(dst, port, secure);
+  // Instancia de la clase ROS
+  const rosClient = new ROSClient(host, port, secure);
 
   try {
-    // Abre la conexión al socket
-    await apiRosSocket.openSocket();
+    // Abrir la conexión al socket
+    await rosClient.connect();
 
-    // Enviar el comando de login
-    await apiRosSocket.login(username, password);
-    const loginRes = await apiRosSocket.readData();
-    console.log(`Login response: ${clearData(loginRes.toString())}`);
+    // Intentar iniciar sesión
+    const loginSuccess = await rosClient.login(username, password);
+    if (loginSuccess) {
+      // Mantener el flujo interactivo de comandos
+      rl.on('line', async (input) => {
+        switch (input) {
+          case 'help':
+            console.log('Comandos disponibles:');
+            console.log('help - Muestra este mensaje');
+            console.log('q - Cierra la aplicación');
+            break;
+          case 'q':
+            rosClient.close()
+            rl.close();
+            break;
+          default:
+            try {
+              await rosClient.sendCommand(input.split(' '));
+              // console.log(`Comando enviado: ${input}`);
+            } catch (error) {
+              // console.error('Error enviando comando:', error.message);
+            }
+            rl.prompt();  // Mantener el prompt activo
+            break;
+        }
+      });
 
-    // Mantener el flujo interactivo de comandos
-    rl.on('line', async (input) => {
-      switch (input) {
-        case 'help':
-          console.log('Help command');
-          break;
-        case 'exit':
-          rl.close();
-          break;
-        default:
-          try {
-            await apiRosSocket.sendMessage(input.split(' '));
-            const response = await apiRosSocket.readData();
-            console.log(`${clearData(response.toString())}`);
-          } catch (error) {
-            console.error('Error sending command:', error.message);
-          }
-          rl.prompt();  // Mantener el prompt activo
-          break;
-      }
-    });
+    } else {
+      console.error('Fallo al iniciar sesión.');
+    }
 
   } catch (error) {
     console.error('Error:', error.message);
@@ -72,6 +75,7 @@ rl.question('host: ', (host) => {
     if (username) {
       connectionData.username = username;
     }
+
     rl.question('password: ', (password) => {
       if (password) {
         connectionData.password = password;
@@ -85,6 +89,6 @@ rl.question('host: ', (host) => {
 });
 
 rl.on('close', () => {
-  console.log('Bye!');
+  console.log('¡Hasta luego!');
   process.exit(0);
 });

@@ -1,3 +1,4 @@
-export * from "./client";
+export * from "./routeros.client";
 export * from "./types";
-export * from "./utils";
+export * from "./utils/utils";
+
