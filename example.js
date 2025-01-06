@@ -1,5 +1,5 @@
 import * as readline from 'readline';
-import { ROSClient } from './dist/index.js'; // Asegúrate de importar correctamente tu clase ROS
+import { RouterOSClient } from './dist/index.js'; // Asegúrate de importar correctamente tu clase ROS
 
 // Crear la interfaz readline
 const rl = readline.createInterface({
@@ -24,7 +24,7 @@ const handleConnection = async () => {
   const secure = false;  // Ajusta a `true` si la conexión debe ser segura
 
   // Instancia de la clase ROS
-  const rosClient = new ROSClient(host, port, secure);
+  const rosClient = new RouterOSClient(host, port, secure);
 
   try {
     // Abrir la conexión al socket
