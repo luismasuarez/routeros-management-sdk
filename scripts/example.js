@@ -1,127 +1,108 @@
+import chalk from 'chalk';
 import * as readline from 'readline';
-import { RouterOSClient } from '../dist/index.js'; // Asegúrate de importar correctamente tu clase ROS
+import { RouterOSClient } from '../dist/index.js';
 
-// Crear la interfaz readline
 const rl = readline.createInterface({
-  input: process.stdin,  // Entrada (lo que el usuario escribe)
-  output: process.stdout,  // Salida (lo que se muestra en la consola)
-  prompt: 'ROS> '  // Mensaje de prompt que aparecerá antes de que el usuario ingrese algo
+  input: process.stdin,
+  output: process.stdout,
+  prompt: chalk.blue('RouterOS > ')
 });
 
-// Almacenar los datos en un objeto
 let connectionData = {
   host: '127.0.0.1',
   username: 'admin',
   password: 'elpasadomartes'
 };
 
-// Crear el cliente RouterOS
-
-// Función para manejar la conexión y los comandos
 const handleConnection = async () => {
   const { host, username, password } = connectionData;
   const port = 8728;
-  const secure = false;  // Ajusta a `true` si la conexión debe ser segura
+  const secure = false;
 
-  // Instancia de la clase ROS
   const rosClient = new RouterOSClient(host, port, secure);
 
-  // Suscripción a eventos
   rosClient.on('connect', () => {
-    console.log('[EVENT] Conectado al RouterOS');
+    console.log(chalk.greenBright('[CONNECTED] Conectado al RouterOS'));
   });
 
   rosClient.on('error', (err) => {
-    console.error('[EVENT] Error:', err.message);
+    console.error(chalk.redBright('[ERROR]'), err.message);
   });
 
   rosClient.on('data', (data) => {
-    console.log('[EVENT] Datos crudos recibidos:', data);
-  });
-
-  rosClient.on('close', () => {
-    console.log('[EVENT] Conexión cerrada');
-  });
-
-  rosClient.on('end', () => {
-    console.log('[EVENT] Fin de la conexión');
-  });
-
-  rosClient.on('timeout', () => {
-    console.log('[EVENT] Timeout de conexión');
-  });
-
-  rosClient.on('fatal', (info) => {
-    console.error('[EVENT] Error fatal:', info);
+    if (rosClient.debug) {
+      console.log(chalk.yellow('[RAW DATA]'), data.toString('utf8'));
+    }
   });
 
   rosClient.on('sentence', (sentence) => {
-    console.log('[EVENT] Sentencia recibida:', sentence);
+    if (rosClient.debug) {
+      console.log(chalk.cyan('[SENTENCE]'));
+      console.dir(sentence, { colors: true, depth: null });
+    }
+  });
+
+  rosClient.on('close', () => {
+    console.log(chalk.gray('[CLOSED] Conexión cerrada'));
   });
 
   try {
-    // Abrir la conexión al socket
     await rosClient.connect();
-
-    // Intentar iniciar sesión
     const loginSuccess = await rosClient.login(username, password);
+
     if (loginSuccess) {
-      // Mantener el flujo interactivo de comandos
+      rl.prompt();
       rl.on('line', async (input) => {
-        switch (input) {
+        switch (input.trim()) {
           case 'help':
-            console.log('Comandos disponibles:');
-            console.log('help - Muestra este mensaje');
-            console.log('q - Cierra la aplicación');
+            console.log(`
+Comandos disponibles:
+  help  - Ayuda
+  q     - Cerrar
+  <cmd> - Ejecuta comando RouterOS`);
             break;
           case 'q':
-            rosClient.close()
+            console.log(chalk.gray('Cerrando conexión...'));
+            rosClient.close();
             rl.close();
             break;
           default:
             try {
-              await rosClient.sendCommand(input.split(' '));
-              // console.log(`Comando enviado: ${input}`);
-            } catch (error) {
-              // console.error('Error enviando comando:', error.message);
+              const response = await rosClient.sendCommand(input.split(' '));
+              console.log(chalk.magenta('[RESPONSE]'));
+              console.dir(response, { colors: true, depth: null });
+            } catch (err) {
+              console.error(chalk.red('[SEND ERROR]'), err.message);
             }
-            rl.prompt();  // Mantener el prompt activo
             break;
         }
+        rl.prompt();
       });
 
     } else {
-      console.error('Fallo al iniciar sesión.');
+      console.error(chalk.red('Login fallido.'));
+      rl.close();
     }
 
-  } catch (error) {
-    console.error('Error:', error.message);
+  } catch (err) {
+    console.error(chalk.red('Error:'), err.message);
+    rl.close();
   }
 };
 
+console.clear();
 rl.question('host: ', (host) => {
-  if (host) {
-    connectionData.host = host;
-  }
-
+  if (host) connectionData.host = host;
   rl.question('user: ', (username) => {
-    if (username) {
-      connectionData.username = username;
-    }
-
+    if (username) connectionData.username = username;
     rl.question('password: ', (password) => {
-      if (password) {
-        connectionData.password = password;
-      }
-      rl.prompt();
-
-      // Llamar a la función que maneja la conexión y comandos
+      if (password) connectionData.password = password;
       handleConnection();
     });
   });
 });
 
 rl.on('close', () => {
-  console.log('¡Hasta luego!');
+  console.log(chalk.gray('¡Hasta luego!'));
   process.exit(0);
 });

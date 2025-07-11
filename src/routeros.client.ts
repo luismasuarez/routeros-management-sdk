@@ -1,7 +1,7 @@
+import { EventEmitter } from "events";
 import * as net from "net";
 import * as tls from "tls";
 import { RouterOSResponse } from "./types";
-import { EventEmitter } from "events";
 
 export class RouterOSClient extends EventEmitter {
   private host: string;
@@ -13,6 +13,7 @@ export class RouterOSClient extends EventEmitter {
   private maxReconnectAttempts: number;
   private reconnectInterval: number;
   private connectionTimeout: number;
+  private debug: boolean;
 
   /**
    * Creates an instance of RouterOSClient.
@@ -23,7 +24,7 @@ export class RouterOSClient extends EventEmitter {
    * @param reconnectInterval - Interval between reconnection attempts in ms (default 2000).
    * @param connectionTimeout - Timeout for connection attempts in ms (default 10000).
    */
-  constructor(host: string, port?: number, secure = false, maxReconnectAttempts = 3, reconnectInterval = 2000, connectionTimeout = 10000) {
+  constructor(host: string, port?: number, secure = false, maxReconnectAttempts = 3, reconnectInterval = 2000, connectionTimeout = 10000, debug = false) {
     super(); // Initialize EventEmitter
     this.host = host;
     this.port = port || (secure ? 8729 : 8728);
@@ -31,6 +32,7 @@ export class RouterOSClient extends EventEmitter {
     this.maxReconnectAttempts = maxReconnectAttempts;
     this.reconnectInterval = reconnectInterval;
     this.connectionTimeout = connectionTimeout;
+    this.debug = debug; // guardar el flag
   }
 
   /**
@@ -148,7 +150,7 @@ export class RouterOSClient extends EventEmitter {
    * @param word - The word to send.
    */
   writeWord(word: string): void {
-    console.log(`<<< ${word}`);
+    if (this.debug) console.log(`<<< ${word}`);
     const length = Buffer.byteLength(word, "utf8");
     const lengthBuffer = this.encodeLength(length);
     const wordBuffer = Buffer.from(word, "utf8");
@@ -244,9 +246,10 @@ export class RouterOSClient extends EventEmitter {
     }
     const word = this.buffer.slice(0, length).toString("utf8");
     this.buffer = this.buffer.slice(length);
-    console.log(`>>> ${word}`);
+    if (this.debug) console.log(`>>> ${word}`);
     return word;
   }
+
 
   /**
    * Reads the length of the next word from the RouterOS device.
