@@ -1,8 +1,9 @@
 import * as net from "net";
 import * as tls from "tls";
 import { RouterOSResponse } from "./types";
+import { EventEmitter } from "events";
 
-export class RouterOSClient {
+export class RouterOSClient extends EventEmitter {
   private host: string;
   private port: number;
   private secure: boolean;
@@ -23,6 +24,7 @@ export class RouterOSClient {
    * @param connectionTimeout - Timeout for connection attempts in ms (default 10000).
    */
   constructor(host: string, port?: number, secure = false, maxReconnectAttempts = 3, reconnectInterval = 2000, connectionTimeout = 10000) {
+    super(); // Initialize EventEmitter
     this.host = host;
     this.port = port || (secure ? 8729 : 8728);
     this.secure = secure;
@@ -45,7 +47,11 @@ export class RouterOSClient {
         connection.on("error", onError);
         connection.on("data", (data) => {
           this.buffer = Buffer.concat([this.buffer, data]);
+          this.emit("data", data); // NUEVO: evento de datos crudos
         });
+        connection.on("close", () => this.emit("close"));
+        connection.on("end", () => this.emit("end"));
+        connection.on("timeout", () => this.emit("timeout"));
 
         this.socket = connection;
       };
@@ -53,11 +59,13 @@ export class RouterOSClient {
       const onConnect = () => {
         if (timeoutId) clearTimeout(timeoutId);
         this.reconnectAttempts = 0;
+        this.emit("connect");
         resolve();
       };
 
       const onError = (err: Error) => {
         if (timeoutId) clearTimeout(timeoutId);
+        this.emit("error", err);
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++;
           setTimeout(() => {
@@ -69,6 +77,7 @@ export class RouterOSClient {
       };
 
       timeoutId = setTimeout(() => {
+        this.emit("timeout");
         reject(new Error(`Connection timed out after ${this.connectionTimeout} ms`));
       }, this.connectionTimeout);
 
@@ -201,6 +210,10 @@ export class RouterOSClient {
         return acc;
       }, {});
       responses.push({ type, attributes });
+      if (type === "!fatal") {
+        this.emit("fatal", { type, attributes }); // NUEVO: evento fatal
+        break;
+      }
       if (type === "!done") break;
     }
     return responses;
@@ -216,6 +229,7 @@ export class RouterOSClient {
       if (word === "") break;
       sentence.push(word);
     }
+    this.emit("sentence", sentence); // NUEVO: evento de sentencia completa
     return sentence;
   }
 

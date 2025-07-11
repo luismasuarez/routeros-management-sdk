@@ -26,6 +26,39 @@ const handleConnection = async () => {
   // Instancia de la clase ROS
   const rosClient = new RouterOSClient(host, port, secure);
 
+  // Suscripción a eventos
+  rosClient.on('connect', () => {
+    console.log('[EVENT] Conectado al RouterOS');
+  });
+
+  rosClient.on('error', (err) => {
+    console.error('[EVENT] Error:', err.message);
+  });
+
+  rosClient.on('data', (data) => {
+    console.log('[EVENT] Datos crudos recibidos:', data);
+  });
+
+  rosClient.on('close', () => {
+    console.log('[EVENT] Conexión cerrada');
+  });
+
+  rosClient.on('end', () => {
+    console.log('[EVENT] Fin de la conexión');
+  });
+
+  rosClient.on('timeout', () => {
+    console.log('[EVENT] Timeout de conexión');
+  });
+
+  rosClient.on('fatal', (info) => {
+    console.error('[EVENT] Error fatal:', info);
+  });
+
+  rosClient.on('sentence', (sentence) => {
+    console.log('[EVENT] Sentencia recibida:', sentence);
+  });
+
   try {
     // Abrir la conexión al socket
     await rosClient.connect();
