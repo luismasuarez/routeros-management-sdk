@@ -27,5 +27,8 @@
     "ts-jest": "^29.4.0",
     "tsup": "^8.2.2",
     "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.0"
   }
 }

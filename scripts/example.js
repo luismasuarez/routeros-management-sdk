@@ -1,6 +1,9 @@
 import chalk from 'chalk';
 import * as readline from 'readline';
+import { config } from 'dotenv'; // 👈
 import { RouterOSClient } from '../dist/index.js';
+
+config(); // 👈 Cargar .env
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -9,17 +12,24 @@ const rl = readline.createInterface({
 });
 
 let connectionData = {
-  host: '127.0.0.1',
-  username: 'admin',
-  password: 'elpasadomartes'
+  host: process.env.ROUTEROS_HOST || '127.0.0.1',
+  username: process.env.ROUTEROS_USERNAME || 'admin',
+  password: process.env.ROUTEROS_PASSWORD || ''
 };
 
 const handleConnection = async () => {
   const { host, username, password } = connectionData;
-  const port = 8728;
-  const secure = false;
+  const port = Number(process.env.ROUTEROS_PORT) || 8728;
+  const secure = process.env.ROUTEROS_SECURE === 'true';
 
-  const rosClient = new RouterOSClient(host, port, secure);
+  const rosClient = new RouterOSClient(
+    host,
+    port,
+    secure
+  );
+
+  // ✅ Opcional: set debug flag si existe
+  rosClient.debug = process.env.ROUTEROS_DEBUG === 'true';
 
   rosClient.on('connect', () => {
     console.log(chalk.greenBright('[CONNECTED] Conectado al RouterOS'));
@@ -91,9 +101,9 @@ Comandos disponibles:
 };
 
 console.clear();
-rl.question('host: ', (host) => {
+rl.question(`host [${connectionData.host}]: `, (host) => {
   if (host) connectionData.host = host;
-  rl.question('user: ', (username) => {
+  rl.question(`user [${connectionData.username}]: `, (username) => {
     if (username) connectionData.username = username;
     rl.question('password: ', (password) => {
       if (password) connectionData.password = password;
