@@ -1,5 +1,5 @@
 import * as readline from 'readline';
-import { RouterOSClient } from './dist/index.js'; // Asegúrate de importar correctamente tu clase ROS
+import { RouterOSClient } from '../dist/index.js'; // Asegúrate de importar correctamente tu clase ROS
 
 // Crear la interfaz readline
 const rl = readline.createInterface({

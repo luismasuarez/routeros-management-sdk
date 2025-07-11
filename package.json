@@ -9,7 +9,8 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
-    "test": "jest"
+    "test": "jest",
+    "connect": "npm run build && node ./scripts/example.js"
   },
   "keywords": [
     "npm",
