@@ -8,34 +8,61 @@ export class RouterOSClient {
   private secure: boolean;
   private socket: net.Socket | tls.TLSSocket | null = null;
   private buffer: Buffer = Buffer.alloc(0);
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number;
+  private reconnectInterval: number;
 
   /**
    * Creates an instance of RouterOSClient.
    * @param host - The IP address or hostname of the RouterOS device.
    * @param port - The port number for the connection (default 8728 for non-secure, 8729 for secure).
    * @param secure - Whether to use a secure (TLS) connection.
+   * @param maxReconnectAttempts - Maximum number of reconnection attempts (default 3).
+   * @param reconnectInterval - Interval between reconnection attempts in ms (default 2000).
    */
-  constructor(host: string, port?: number, secure = false) {
+  constructor(host: string, port?: number, secure = false, maxReconnectAttempts = 3, reconnectInterval = 2000) {
     this.host = host;
     this.port = port || (secure ? 8729 : 8728);
     this.secure = secure;
+    this.maxReconnectAttempts = maxReconnectAttempts;
+    this.reconnectInterval = reconnectInterval;
   }
 
   /**
-   * Connects to the RouterOS device.
+   * Connects to the RouterOS device, with automatic reconnection on failure.
    */
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const connection = this.secure
-        ? tls.connect(this.port, this.host, {}, resolve)
-        : net.connect(this.port, this.host, resolve);
+      const doConnect = () => {
+        const connection = this.secure
+          ? tls.connect(this.port, this.host, {}, onConnect)
+          : net.connect(this.port, this.host, onConnect);
 
-      connection.on("error", reject);
-      connection.on("data", (data) => {
-        this.buffer = Buffer.concat([this.buffer, data]);
-      });
+        connection.on("error", onError);
+        connection.on("data", (data) => {
+          this.buffer = Buffer.concat([this.buffer, data]);
+        });
 
-      this.socket = connection;
+        this.socket = connection;
+      };
+
+      const onConnect = () => {
+        this.reconnectAttempts = 0;
+        resolve();
+      };
+
+      const onError = (err: Error) => {
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.reconnectAttempts++;
+          setTimeout(() => {
+            doConnect();
+          }, this.reconnectInterval);
+        } else {
+          reject(new Error(`Failed to connect after ${this.maxReconnectAttempts} attempts: ${err.message}`));
+        }
+      };
+
+      doConnect();
     });
   }
 

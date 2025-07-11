@@ -8,7 +8,8 @@
   "homepage": "https://github.com/luismasuarez",
   "type": "module",
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "test": "jest"
   },
   "keywords": [
     "npm",
@@ -19,7 +20,10 @@
   "author": "Luisma Suarez",
   "license": "MIT",
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.10.2",
+    "jest": "^30.0.4",
+    "ts-jest": "^29.4.0",
     "tsup": "^8.2.2",
     "typescript": "^5.5.4"
   }

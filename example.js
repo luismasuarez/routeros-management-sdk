@@ -12,7 +12,7 @@ const rl = readline.createInterface({
 let connectionData = {
   host: '127.0.0.1',
   username: 'admin',
-  password: '1892'
+  password: 'elpasadomartes'
 };
 
 // Crear el cliente RouterOS
