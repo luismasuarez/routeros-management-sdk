@@ -24,7 +24,15 @@ export class RouterOSClient extends EventEmitter {
    * @param reconnectInterval - Interval between reconnection attempts in ms (default 2000).
    * @param connectionTimeout - Timeout for connection attempts in ms (default 10000).
    */
-  constructor(host: string, port?: number, secure = false, maxReconnectAttempts = 3, reconnectInterval = 2000, connectionTimeout = 10000, debug = false) {
+  constructor(
+    host: string,
+    port?: number,
+    secure = false,
+    maxReconnectAttempts = 3,
+    reconnectInterval = 2000,
+    connectionTimeout = 10000,
+    debug = false
+  ) {
     super(); // Initialize EventEmitter
     this.host = host;
     this.port = port || (secure ? 8729 : 8728);
