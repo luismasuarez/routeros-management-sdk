@@ -152,20 +152,38 @@ export class RouterOSClient {
    */
   private encodeLength(length: number): Buffer {
     if (length < 0x80) {
+      // 1 byte
       return Buffer.from([length]);
     } else if (length < 0x4000) {
-      return Buffer.from([(length >> 8) | 0x80, length & 0xff]);
+      // 2 bytes, big-endian
+      const val = length | 0x8000;
+      return Buffer.from([(val >> 8) & 0xFF, val & 0xFF]);
     } else if (length < 0x200000) {
-      return Buffer.from([(length >> 16) | 0xc0, (length >> 8) & 0xff, length & 0xff]);
-    } else if (length < 0x10000000) {
+      // 3 bytes, big-endian
+      const val = length | 0xC00000;
       return Buffer.from([
-        (length >> 24) | 0xe0,
-        (length >> 16) & 0xff,
-        (length >> 8) & 0xff,
-        length & 0xff,
+        (val >> 16) & 0xFF,
+        (val >> 8) & 0xFF,
+        val & 0xFF
+      ]);
+    } else if (length < 0x10000000) {
+      // 4 bytes, big-endian
+      const val = length | 0xE0000000;
+      return Buffer.from([
+        (val >> 24) & 0xFF,
+        (val >> 16) & 0xFF,
+        (val >> 8) & 0xFF,
+        val & 0xFF
       ]);
     } else {
-      throw new Error("Length too large");
+      // 5 bytes: 0xF0, luego 4 bytes big-endian
+      return Buffer.from([
+        0xF0,
+        (length >> 24) & 0xFF,
+        (length >> 16) & 0xFF,
+        (length >> 8) & 0xFF,
+        length & 0xFF
+      ]);
     }
   }
 
@@ -229,12 +247,30 @@ export class RouterOSClient {
     if (firstByte < 0x80) {
       length = firstByte;
       this.buffer = this.buffer.slice(1);
-    } else if (firstByte < 0xc0) {
+    } else if (firstByte < 0xC0) {
       while (this.buffer.length < 2) {
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
-      length = ((firstByte & ~0x80) << 8) | this.buffer[1];
+      length = ((this.buffer[0] & 0x7F) << 8) | this.buffer[1];
       this.buffer = this.buffer.slice(2);
+    } else if (firstByte < 0xE0) {
+      while (this.buffer.length < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      length = ((this.buffer[0] & 0x3F) << 16) | (this.buffer[1] << 8) | this.buffer[2];
+      this.buffer = this.buffer.slice(3);
+    } else if (firstByte < 0xF0) {
+      while (this.buffer.length < 4) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      length = ((this.buffer[0] & 0x1F) << 24) | (this.buffer[1] << 16) | (this.buffer[2] << 8) | this.buffer[3];
+      this.buffer = this.buffer.slice(4);
+    } else if (firstByte === 0xF0) {
+      while (this.buffer.length < 5) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      length = (this.buffer[1] << 24) | (this.buffer[2] << 16) | (this.buffer[3] << 8) | this.buffer[4];
+      this.buffer = this.buffer.slice(5);
     } else {
       throw new Error("Unsupported length encoding");
     }
