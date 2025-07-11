@@ -1,6 +1,7 @@
 /dist
 /node_modules
 /temp
+/routeros-data
 
 .env
 .DS_Store

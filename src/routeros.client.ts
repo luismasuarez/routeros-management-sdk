@@ -11,6 +11,7 @@ export class RouterOSClient {
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number;
   private reconnectInterval: number;
+  private connectionTimeout: number;
 
   /**
    * Creates an instance of RouterOSClient.
@@ -19,20 +20,23 @@ export class RouterOSClient {
    * @param secure - Whether to use a secure (TLS) connection.
    * @param maxReconnectAttempts - Maximum number of reconnection attempts (default 3).
    * @param reconnectInterval - Interval between reconnection attempts in ms (default 2000).
+   * @param connectionTimeout - Timeout for connection attempts in ms (default 10000).
    */
-  constructor(host: string, port?: number, secure = false, maxReconnectAttempts = 3, reconnectInterval = 2000) {
+  constructor(host: string, port?: number, secure = false, maxReconnectAttempts = 3, reconnectInterval = 2000, connectionTimeout = 10000) {
     this.host = host;
     this.port = port || (secure ? 8729 : 8728);
     this.secure = secure;
     this.maxReconnectAttempts = maxReconnectAttempts;
     this.reconnectInterval = reconnectInterval;
+    this.connectionTimeout = connectionTimeout;
   }
 
   /**
-   * Connects to the RouterOS device, with automatic reconnection on failure.
+   * Connects to the RouterOS device, with automatic reconnection on failure and timeout.
    */
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
+      let timeoutId: NodeJS.Timeout | null = null;
       const doConnect = () => {
         const connection = this.secure
           ? tls.connect(this.port, this.host, {}, onConnect)
@@ -47,11 +51,13 @@ export class RouterOSClient {
       };
 
       const onConnect = () => {
+        if (timeoutId) clearTimeout(timeoutId);
         this.reconnectAttempts = 0;
         resolve();
       };
 
       const onError = (err: Error) => {
+        if (timeoutId) clearTimeout(timeoutId);
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++;
           setTimeout(() => {
@@ -61,6 +67,10 @@ export class RouterOSClient {
           reject(new Error(`Failed to connect after ${this.maxReconnectAttempts} attempts: ${err.message}`));
         }
       };
+
+      timeoutId = setTimeout(() => {
+        reject(new Error(`Connection timed out after ${this.connectionTimeout} ms`));
+      }, this.connectionTimeout);
 
       doConnect();
     });
