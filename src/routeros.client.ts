@@ -14,6 +14,7 @@ export class RouterOSClient extends EventEmitter {
   private reconnectInterval: number;
   private connectionTimeout: number;
   private debug: boolean;
+  private sessionCookie: string | null = null;
 
   /**
    * Creates an instance of RouterOSClient.
@@ -104,6 +105,12 @@ export class RouterOSClient extends EventEmitter {
     await this.writeSentence(["/login", `=name=${username}`, `=password=${password}`]);
     const response = await this.readResponse();
 
+    // Extraer cookie de sesión si está presente
+    const cookieResponse = response.find(resp => resp.attributes.ret);
+    if (cookieResponse) {
+      this.sessionCookie = cookieResponse.attributes.ret;
+    }
+
     // Verificar múltiples tipos de respuesta
     const hasDone = response.some((resp) => resp.type === "!done");
     const hasTrap = response.some((resp) => resp.type === "!trap");
@@ -122,35 +129,31 @@ export class RouterOSClient extends EventEmitter {
    * @param words - The command and its parameters as an array of strings.
    */
   async sendCommand(words: string[]): Promise<RouterOSResponse[]> {
-    this.writeSentence(words)
-
+    this.writeSentence(words);
     const responses: RouterOSResponse[] = [];
 
     while (true) {
       const sentence = await this.readSentence();
-
-      if (sentence.length === 0) {
-        continue;
-      }
+      if (sentence.length === 0) continue;
 
       const reply = sentence[0];
-      const attributes: Record<string, string> = {};
-
-      for (const word of sentence.slice(1)) {
-        const index = word.indexOf("=", 1);
-        if (index === -1) {
-          attributes[word] = "";
-        } else {
-          attributes[word.slice(0, index)] = word.slice(index + 1);
-        }
-      }
+      const attributes = this.parseAttributes(sentence.slice(1));
 
       responses.push({ type: reply, attributes });
 
-      if (reply === "!done") {
-        return responses;
+      // Manejar diferentes tipos de respuesta
+      if (reply === "!done") break;
+      if (reply === "!trap") {
+        this.emit("trap", { type: reply, attributes });
+        // Opcional: lanzar error
+      }
+      if (reply === "!fatal") {
+        this.emit("fatal", { type: reply, attributes });
+        break;
       }
     }
+
+    return responses;
   }
 
   /**
@@ -228,11 +231,15 @@ export class RouterOSClient extends EventEmitter {
     while (true) {
       const sentence = await this.readSentence();
       const type = sentence[0];
-      const attributes = sentence.slice(1).reduce<Record<string, string>>((acc, word) => {
-        const [key, value] = word.split("=", 2);
-        acc[key] = value || "";
-        return acc;
-      }, {});
+      const attributes: Record<string, string> = {};
+      for (const word of sentence.slice(1)) {
+        const index = word.indexOf("=", 1);
+        if (index === -1) {
+          attributes[word] = "";
+        } else {
+          attributes[word.slice(0, index)] = word.slice(index + 1);
+        }
+      }
       responses.push({ type, attributes });
       if (type === "!trap") {
         this.emit("trap", { type, attributes });
@@ -321,10 +328,41 @@ export class RouterOSClient extends EventEmitter {
   }
 
   /**
+   * Parses attributes from an array of words.
+   * @param words - The words to parse.
+   * @returns A dictionary of attributes.
+   */
+  private parseAttributes(words: string[]): Record<string, string> {
+    const attributes: Record<string, string> = {};
+    for (const word of words) {
+      const index = word.indexOf("=", 1);
+      if (index === -1) {
+        attributes[word] = "";
+      } else {
+        attributes[word.slice(0, index)] = word.slice(index + 1);
+      }
+    }
+    return attributes;
+  }
+
+  /**
    * Closes the socket connection.
    */
   close(): void {
     this.socket?.setTimeout(5000);
     this.socket?.end();
+  }
+
+  // Métodos helper para operaciones comunes
+  async getInterfaces(): Promise<RouterOSResponse[]> {
+    return this.sendCommand(["/interface/print"]);
+  }
+
+  async getAddresses(): Promise<RouterOSResponse[]> {
+    return this.sendCommand(["/ip/address/print"]);
+  }
+
+  async addInterface(name: string, type: string): Promise<RouterOSResponse[]> {
+    return this.sendCommand(["/interface/add", `=name=${name}`, `=type=${type}`]);
   }
 }
