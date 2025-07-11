@@ -95,7 +95,18 @@ export class RouterOSClient extends EventEmitter {
   async login(username: string, password: string): Promise<boolean> {
     await this.writeSentence(["/login", `=name=${username}`, `=password=${password}`]);
     const response = await this.readResponse();
-    return response.some((resp) => resp.type === "!done");
+
+    // Verificar múltiples tipos de respuesta
+    const hasDone = response.some((resp) => resp.type === "!done");
+    const hasTrap = response.some((resp) => resp.type === "!trap");
+    const hasFatal = response.some((resp) => resp.type === "!fatal");
+
+    if (hasTrap || hasFatal) {
+      const errorMsg = response.find(resp => resp.type === "!trap" || resp.type === "!fatal");
+      throw new Error(`Login failed: ${errorMsg?.attributes.message || 'Unknown error'}`);
+    }
+
+    return hasDone;
   }
 
   /**
@@ -139,6 +150,9 @@ export class RouterOSClient extends EventEmitter {
    * @param words - The command and parameters as an array of strings.
    */
   writeSentence(words: string[]): void {
+    if (!words.length || !words[0].startsWith('/')) {
+      throw new Error('Invalid command format. Must start with /');
+    }
     for (const word of words) {
       this.writeWord(word);
     }
@@ -212,6 +226,10 @@ export class RouterOSClient extends EventEmitter {
         return acc;
       }, {});
       responses.push({ type, attributes });
+      if (type === "!trap") {
+        this.emit("trap", { type, attributes });
+        // Decidir si continuar o lanzar error
+      }
       if (type === "!fatal") {
         this.emit("fatal", { type, attributes }); // NUEVO: evento fatal
         break;
