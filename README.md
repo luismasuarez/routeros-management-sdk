@@ -38,6 +38,12 @@ Un SDK completo para la gestión y administración de dispositivos RouterOS a tr
 - **Build system** con tsup para múltiples formatos
 - **TypeScript** con tipos completos
 
+## ⚠️ Estado del Proyecto
+
+**Este SDK está en fase de desarrollo activo.**  
+Es posible que existan *breaking changes*, funciones incompletas o comportamientos inestables.  
+Úsalo bajo tu propio riesgo y contribuye con *issues* y *pull requests* para ayudar a mejorarlo.
+
 ## 📋 Requisitos
 
 - Node.js 16+ 
