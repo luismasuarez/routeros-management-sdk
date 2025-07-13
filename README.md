@@ -1,5 +1,10 @@
 # RouterOS SDK
 
+![Project Status](https://img.shields.io/badge/status-WIP-orange)
+![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
+
+
 Un SDK completo para la gestión y administración de dispositivos RouterOS a través de la API oficial de MikroTik. Este proyecto incluye un cliente TypeScript/JavaScript, una API REST, una interfaz web moderna y herramientas de desarrollo.
 
 ## 🚀 Características Principales
