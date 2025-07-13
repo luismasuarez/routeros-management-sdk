@@ -1,3 +1,3 @@
-export * from "./routeros.client";
-export * from "./types";
+export { RouterOSClient } from "./routeros.client";
+export type { RouterOSResponse } from "./types";
 
