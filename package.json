@@ -1,11 +1,18 @@
 {
-  "name": "router-os-sdk",
-  "description": "A module for RouterOS managment",
+  "name": "routeros-management-sdk",
+  "description": "Complete RouterOS Management SDK with TypeScript support, REST API, Web Interface, and CLI tools for MikroTik devices",
   "version": "0.0.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "homepage": "https://github.com/luismasuarez",
+  "homepage": "https://github.com/luismasuarez/routeros-management-sdk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luismasuarez/routeros-management-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/luismasuarez/routeros-management-sdk/issues"
+  },
   "type": "module",
   "scripts": {
     "build": "tsup",
@@ -17,10 +24,24 @@
     "dev:server": "nodemon dist/api/server.js"
   },
   "keywords": [
-    "npm",
-    "module",
-    "template",
-    "starter scaffold"
+    "routeros",
+    "mikrotik",
+    "sdk",
+    "typescript",
+    "javascript",
+    "api",
+    "management",
+    "network",
+    "router",
+    "firewall",
+    "vpn",
+    "dhcp",
+    "dns",
+    "rest-api",
+    "cli",
+    "web-interface",
+    "docker",
+    "nodejs"
   ],
   "author": "Luisma Suarez",
   "license": "MIT",
